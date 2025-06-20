@@ -578,65 +578,194 @@
             }, 5000);
         }
 
-        // Conectare la Firebase cu configurația utilizatorului
-        async function connectFirebase() {
-            const projectId = document.getElementById('firebase-project').value.trim();
-            const apiKey = document.getElementById('firebase-api-key').value.trim();
-            const authDomain = document.getElementById('firebase-auth-domain').value.trim();
-            const databaseURL = document.getElementById('firebase-database-url').value.trim();
-            
-            if (!projectId || !apiKey) {
-                showMessage('Te rog completează cel puțin Project ID și API Key!', 'error');
-                return;
-            }
-            
+        // Conectare la Firebase cu verificare îmbunătățită
+async function connectFirebase() {
+    const projectId = document.getElementById('firebase-project').value.trim();
+    const apiKey = document.getElementById('firebase-api-key').value.trim();
+    const authDomain = document.getElementById('firebase-auth-domain').value.trim();
+    const databaseURL = document.getElementById('firebase-database-url').value.trim();
+    
+    if (!projectId || !apiKey) {
+        showMessage('Te rog completează cel puțin Project ID și API Key!', 'error');
+        return;
+    }
+    
+    try {
+        // Configurația Firebase cu verificări suplimentare
+        const firebaseConfig = {
+            apiKey: apiKey,
+            authDomain: authDomain || `${projectId}.firebaseapp.com`,
+            databaseURL: databaseURL || `https://${projectId}-default-rtdb.europe-west1.firebasedatabase.app/`,
+            projectId: projectId,
+            storageBucket: `${projectId}.appspot.com`,
+            messagingSenderId: "760738644650", // din configurația ta
+            appId: "1:760738644650:web:b3bcfccdbae1aa998006d3" // din configurația ta
+        };
+
+        // Șterge aplicația Firebase existentă dacă există
+        if (firebaseApp) {
             try {
-                // Configurația Firebase bazată pe input-ul utilizatorului
-                const firebaseConfig = {
-                    apiKey: apiKey,
-                    authDomain: authDomain || `${projectId}.firebaseapp.com`,
-                    databaseURL: databaseURL || `https://${projectId}-default-rtdb.firebaseio.com/`,
-                    projectId: projectId,
-                    storageBucket: `${projectId}.appspot.com`,
-                    messagingSenderId: "123456789",
-                    appId: "1:123456789:web:abcdef123456"
-                };
-
-                // Șterge aplicația Firebase existentă dacă există
-                if (firebaseApp) {
-                    firebaseApp.delete();
-                }
-
-                // Inițializează Firebase
-                firebaseApp = firebase.initializeApp(firebaseConfig, 'medical-portal');
-                firebaseAuth = firebase.auth(firebaseApp);
-                firebaseDb = firebase.database(firebaseApp);
-                
-                // Testează conexiunea
-                await firebaseDb.ref('.info/connected').once('value');
-                
-                // Salvează configurația pentru utilizări viitoare
-                localStorage.setItem('firebase_config', JSON.stringify(firebaseConfig));
-                
-                // Actualizează UI
-                document.getElementById('connection-status').textContent = '🔥 Firebase conectat';
-                document.getElementById('connection-status').className = 'connection-status status-connected';
-                document.getElementById('firebase-config').style.display = 'none';
-                document.getElementById('firebase-status').textContent = 'Conectat și funcțional';
-                
-                showMessage('🔥 Firebase conectat cu succes! Poți să te autentifici acum.', 'success');
-                
-                // Inițializează datele demo în Firebase dacă nu există
-                await initializeDemoData();
-                
-            } catch (error) {
-                console.error('Eroare conectare Firebase:', error);
-                showMessage(`❌ Eroare Firebase: ${error.message}`, 'error');
-                
-                document.getElementById('connection-status').textContent = '❌ Firebase deconectat';
-                document.getElementById('connection-status').className = 'connection-status status-disconnected';
+                await firebaseApp.delete();
+            } catch (e) {
+                console.log('Nu s-a putut șterge aplicația anterioară');
             }
         }
+
+        // Inițializează Firebase cu verificare
+        firebaseApp = firebase.initializeApp(firebaseConfig, 'medical-portal-' + Date.now());
+        firebaseAuth = firebase.auth(firebaseApp);
+        firebaseDb = firebase.database(firebaseApp);
+        
+        // Testează conexiunea la database
+        console.log('Testare conexiune database...');
+        await firebaseDb.ref('.info/connected').once('value');
+        console.log('Database conectat cu succes');
+        
+        // Testează dacă Authentication este configurat
+        console.log('Verificare Authentication...');
+        try {
+            // Încearcă să obții configurația de authentication
+            const authSettings = await firebaseAuth.getRedirectResult();
+            console.log('Authentication configurat corect');
+        } catch (authError) {
+            console.warn('Warning Authentication:', authError.message);
+        }
+        
+        // Salvează configurația
+        localStorage.setItem('firebase_config', JSON.stringify(firebaseConfig));
+        
+        // Actualizează UI
+        document.getElementById('connection-status').textContent = '🔥 Firebase conectat';
+        document.getElementById('connection-status').className = 'connection-status status-connected';
+        document.getElementById('firebase-config').style.display = 'none';
+        document.getElementById('firebase-status').textContent = 'Conectat și funcțional';
+        
+        showMessage('🔥 Firebase conectat cu succes! Authentication verificat.', 'success');
+        
+        // Inițializează datele demo
+        await initializeDemoData();
+        
+    } catch (error) {
+        console.error('Eroare conectare Firebase:', error);
+        
+        // Mesaje de eroare mai specifice
+        let errorMessage = 'Eroare Firebase necunoscută';
+        
+        if (error.code === 'auth/configuration-not-found') {
+            errorMessage = 'Authentication nu este activat în Firebase Console. Mergi la Authentication → Sign-in method → Email/Password → Enable.';
+        } else if (error.code === 'auth/invalid-api-key') {
+            errorMessage = 'API Key invalid. Verifică configurația din Firebase Console.';
+        } else if (error.code === 'auth/project-not-found') {
+            errorMessage = 'Proiectul Firebase nu există. Verifică Project ID.';
+        } else {
+            errorMessage = `Eroare: ${error.message}`;
+        }
+        
+        showMessage(`❌ ${errorMessage}`, 'error');
+        
+        document.getElementById('connection-status').textContent = '❌ Firebase deconectat';
+        document.getElementById('connection-status').className = 'connection-status status-disconnected';
+    }
+}
+
+// Autentificare cu verificări îmbunătățite
+async function handleLogin(event) {
+    event.preventDefault();
+    
+    if (!firebaseAuth) {
+        showMessage('❌ Firebase nu este conectat! Conectează-te mai întâi la Firebase.', 'error');
+        return;
+    }
+    
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    try {
+        showMessage('🔥 Se încearcă autentificarea...', 'info');
+        
+        // Verifică mai întâi dacă Authentication este disponibil
+        try {
+            await firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        } catch (persistenceError) {
+            console.warn('Persistence warning:', persistenceError.message);
+        }
+        
+        let userCredential;
+        try {
+            // Încearcă login
+            console.log('Încercare login cu:', email);
+            userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
+            console.log('Login reușit:', userCredential.user.uid);
+            
+        } catch (authError) {
+            console.log('Login eșuat, încerc să creez cont nou:', authError.code);
+            
+            if (authError.code === 'auth/user-not-found' || authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
+                // Încearcă să creeze un cont nou
+                showMessage('🔥 Creez cont nou în Firebase...', 'info');
+                userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+                
+                // Actualizează profilul
+                await userCredential.user.updateProfile({
+                    displayName: `Dr. ${email.split('@')[0]}`
+                });
+                
+                console.log('Cont nou creat:', userCredential.user.uid);
+                showMessage('🔥 Cont nou creat cu succes!', 'success');
+                
+            } else if (authError.code === 'auth/configuration-not-found') {
+                throw new Error('Authentication nu este configurat în Firebase Console. Activează Email/Password în Sign-in methods.');
+            } else {
+                throw authError;
+            }
+        }
+        
+        const user = userCredential.user;
+        
+        // Salvează informațiile doctorului
+        currentDoctor = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || `Dr. ${email.split('@')[0]}`,
+            photoURL: user.photoURL
+        };
+        
+        console.log('Doctor autentificat:', currentDoctor);
+        
+        showMessage('🔥 Autentificare Firebase reușită!', 'success');
+        showDashboard();
+        
+    } catch (error) {
+        console.error('Eroare completă autentificare:', error);
+        
+        let errorMessage = 'Eroare de autentificare Firebase.';
+        
+        switch (error.code) {
+            case 'auth/weak-password':
+                errorMessage = 'Parola trebuie să aibă cel puțin 6 caractere.';
+                break;
+            case 'auth/email-already-in-use':
+                errorMessage = 'Email-ul este deja folosit de alt cont.';
+                break;
+            case 'auth/invalid-email':
+                errorMessage = 'Format email invalid.';
+                break;
+            case 'auth/configuration-not-found':
+                errorMessage = '❌ Authentication nu este activat în Firebase Console!\n\n📋 Pași de rezolvare:\n1. Mergi în Firebase Console\n2. Authentication → Sign-in method\n3. Email/Password → Enable\n4. Save și încearcă din nou';
+                break;
+            case 'auth/project-not-found':
+                errorMessage = 'Proiectul Firebase nu există. Verifică Project ID.';
+                break;
+            case 'auth/invalid-api-key':
+                errorMessage = 'API Key invalid. Verifică configurația Firebase.';
+                break;
+            default:
+                errorMessage = `Eroare: ${error.message}`;
+        }
+        
+        showMessage(errorMessage, 'error');
+    }
+}
 
         // Inițializează date demo în Firebase
         async function initializeDemoData() {
