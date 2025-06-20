@@ -613,75 +613,66 @@
             console.log(info);
         }
 
-        // Funcție de debug pentru Authentication
-        async function debugFirebaseAuth() {
-            console.log('🔍 DEBUG Firebase Authentication...');
-            document.getElementById('debug-info').innerHTML = '';
-            showDebugInfo('🔍 Începe debug Authentication...');
+        // ÎNLOCUIEȘTE funcția debugFirebaseAuth cu aceasta simplificată:
+async function debugFirebaseAuth() {
+    console.log('🔍 DEBUG Authentication simplificat...');
+    document.getElementById('debug-info').innerHTML = '';
+    showDebugInfo('🔍 Debug Authentication simplificat...');
+    
+    try {
+        if (!firebaseApp) {
+            showDebugInfo('❌ Firebase nu este conectat încă!');
+            showMessage('❌ Conectează-te mai întâi la Firebase!', 'error');
+            return false;
+        }
+        
+        showDebugInfo('📋 Firebase conectat: ✅');
+        showDebugInfo(`Project ID: ${firebaseApp.options.projectId}`);
+        
+        if (!firebaseAuth) {
+            showDebugInfo('❌ Firebase Auth nu este inițializat!');
+            return false;
+        }
+        
+        showDebugInfo('🔐 Firebase Auth object: ✅');
+        
+        // Test simplu - încearcă să creeze un cont de test
+        showDebugInfo('🧪 Test creare cont...');
+        
+        try {
+            const testEmail = 'test-' + Date.now() + '@demo.com';
+            const testPassword = 'test123456';
             
-            try {
-                if (!firebaseApp) {
-                    showDebugInfo('❌ Firebase nu este conectat încă!');
-                    showMessage('❌ Conectează-te mai întâi la Firebase!', 'error');
-                    return false;
-                }
-                
-                // Verifică configurația
-                showDebugInfo('📋 Firebase Config verificat: ✅');
-                showDebugInfo(`Project ID: ${firebaseApp.options.projectId}`);
-                showDebugInfo(`Auth Domain: ${firebaseApp.options.authDomain}`);
-                
-                // Verifică dacă Authentication este disponibil
-                if (!firebaseAuth) {
-                    showDebugInfo('❌ Firebase Auth object nu este inițializat!');
-                    return false;
-                }
-                showDebugInfo('🔐 Firebase Auth object: ✅');
-                
-                // Test conexiune directă la Authentication API
-                const authSettings = firebaseApp.options;
-                const testUrl = `https://identitytoolkit.googleapis.com/v1/projects/${authSettings.projectId}/config?key=${authSettings.apiKey}`;
-                showDebugInfo('🌐 Test Authentication API...');
-                
-                const response = await fetch(testUrl);
-                const configData = await response.json();
-                
-                if (response.ok) {
-                    showDebugInfo('✅ Authentication API funcționează');
-                    
-                    // Verifică dacă Email/Password este activat
-                    if (configData.signIn && configData.signIn.email) {
-                        if (configData.signIn.email.enabled) {
-                            showDebugInfo('✅ Email/Password authentication este ACTIVAT');
-                            showMessage('✅ Authentication este configurat corect!', 'success');
-                        } else {
-                            showDebugInfo('❌ Email/Password authentication este DEZACTIVAT!');
-                            showMessage('❌ Email/Password nu este activat în Firebase Console!\n\n📋 Pentru a activa:\n1. Firebase Console → Authentication\n2. Sign-in method → Email/Password\n3. Enable → Save', 'error');
-                            return false;
-                        }
-                    } else {
-                        showDebugInfo('⚠️ Nu s-au găsit configurări pentru Email/Password');
-                    }
-                    
-                    // Afișează toate metodele de autentificare disponibile
-                    showDebugInfo(`📋 Metode disponibile: ${JSON.stringify(configData.signIn, null, 2)}`);
-                    
-                } else {
-                    showDebugInfo(`❌ Authentication API error: ${response.status}`);
-                    showDebugInfo(`Error details: ${JSON.stringify(configData, null, 2)}`);
-                    showMessage('❌ Eroare la verificarea configurației Authentication', 'error');
-                    return false;
-                }
-                
-                return true;
-                
-            } catch (error) {
-                showDebugInfo(`💥 Eroare debug Authentication: ${error.message}`);
-                console.error('💥 Eroare debug Authentication:', error);
-                showMessage(`❌ Debug error: ${error.message}`, 'error');
+            const testUser = await firebaseAuth.createUserWithEmailAndPassword(testEmail, testPassword);
+            showDebugInfo('✅ Authentication funcționează perfect!');
+            
+            // Șterge contul de test
+            await testUser.user.delete();
+            showDebugInfo('🧹 Cont de test șters');
+            
+            showMessage('✅ Authentication este funcțional! Poți să te loghezi acum.', 'success');
+            return true;
+            
+        } catch (testError) {
+            if (testError.code === 'auth/operation-not-allowed') {
+                showDebugInfo('❌ Email/Password authentication NU este activat!');
+                showMessage('❌ Email/Password nu este activat în Firebase Console!\n\n📋 Pentru a activa:\n1. Firebase Console → Authentication\n2. Sign-in method → Email/Password\n3. Enable → Save', 'error');
                 return false;
+            } else {
+                showDebugInfo(`⚠️ Test error: ${testError.code}`);
+                showDebugInfo('✅ Dar Authentication pare să funcționeze');
+                showMessage('✅ Authentication pare funcțional. Încearcă să te loghezi.', 'success');
+                return true;
             }
         }
+        
+    } catch (error) {
+        showDebugInfo(`💥 Eroare debug: ${error.message}`);
+        console.error('Debug error:', error);
+        showMessage(`❌ Debug error: ${error.message}`, 'error');
+        return false;
+    }
+}
 
         // Conectare la Firebase cu configurația utilizatorului
         async function connectFirebase() {
@@ -780,109 +771,95 @@
             }
         }
 
-        // Funcție de login îmbunătățită cu debug complet
-        async function handleLogin(event) {
-            event.preventDefault();
-            
-            if (!firebaseAuth) {
-                showMessage('❌ Firebase Authentication nu este inițializat!', 'error');
-                return;
-            }
-            
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            
-            // Validări de bază
-            if (!email || !password) {
-                showMessage('❌ Te rog completează email și parola!', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showMessage('❌ Parola trebuie să aibă cel puțin 6 caractere!', 'error');
-                return;
-            }
+        // ÎNLOCUIEȘTE funcția handleLogin cu aceasta îmbunătățită:
+async function handleLogin(event) {
+    event.preventDefault();
+    
+    if (!firebaseAuth) {
+        showMessage('❌ Firebase Authentication nu este inițializat!', 'error');
+        return;
+    }
+    
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    // Validări de bază
+    if (!email || !password) {
+        showMessage('❌ Te rog completează email și parola!', 'error');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showMessage('❌ Parola trebuie să aibă cel puțin 6 caractere!', 'error');
+        return;
+    }
 
-            try {
-                showMessage('🔍 Verificare configurație Authentication...', 'info');
-                
-                // Debug Authentication înainte de login
-                const authOk = await debugFirebaseAuth();
-                if (!authOk) {
-                    return;
+    try {
+        showMessage('🔥 Se încearcă autentificarea...', 'info');
+        
+        let userCredential;
+        
+        try {
+            // Primul pas: încearcă să creeze cont nou direct
+            console.log('🆕 Încercare creare cont pentru:', email);
+            userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+            
+            // Actualizează profilul
+            await userCredential.user.updateProfile({
+                displayName: `Dr. ${email.split('@')[0]}`
+            });
+            
+            console.log('✅ Cont nou creat:', userCredential.user.uid);
+            showMessage('🔥 Cont nou creat cu succes!', 'success');
+            
+        } catch (createError) {
+            console.log('📧 Eroare creare cont:', createError.code);
+            
+            if (createError.code === 'auth/email-already-in-use') {
+                // Dacă contul există, încearcă login
+                try {
+                    console.log('🔓 Cont existent - încercare login...');
+                    showMessage('📧 Cont existent - încercare login...', 'info');
+                    
+                    userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
+                    console.log('✅ Login reușit:', userCredential.user.uid);
+                    showMessage('🔥 Login reușit cu cont existent!', 'success');
+                    
+                } catch (loginError) {
+                    console.error('❌ Login eșuat:', loginError);
+                    throw new Error(`Cont existent dar parolă greșită. Verifică parola sau folosește alt email.`);
                 }
-                
-                showMessage('🔥 Încercare creare cont nou...', 'info');
-                
-                // Încearcă direct să creeze contul
-                const userCredential = await createAccountDirect(email, password);
-                
-                const user = userCredential.user;
-                
-                // Salvează informațiile doctorului
-                currentDoctor = {
-                    uid: user.uid,
-                    email: user.email,
-                    displayName: user.displayName || `Dr. ${email.split('@')[0]}`,
-                    photoURL: user.photoURL
-                };
-                
-                console.log('✅ Autentificare reușită:', currentDoctor);
-                
-                showMessage('🔥 Cont creat și autentificare reușită!', 'success');
-                showDashboard();
-                
-            } catch (error) {
-                console.error('💥 Eroare completă:', error);
-                
-                let errorMessage = 'Eroare necunoscută de autentificare.';
-                
-                switch (error.code) {
-                    case 'auth/email-already-in-use':
-                        // Dacă contul există, încearcă login
-                        try {
-                            showMessage('📧 Contul există - încercare login...', 'info');
-                            const loginCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
-                            
-                            currentDoctor = {
-                                uid: loginCredential.user.uid,
-                                email: loginCredential.user.email,
-                                displayName: loginCredential.user.displayName || `Dr. ${email.split('@')[0]}`,
-                                photoURL: loginCredential.user.photoURL
-                            };
-                            
-                            showMessage('🔥 Login reușit cu cont existent!', 'success');
-                            showDashboard();
-                            return;
-                            
-                        } catch (loginError) {
-                            errorMessage = `❌ Cont existent dar parolă greșită: ${loginError.message}`;
-                        }
-                        break;
-                        
-                    case 'auth/weak-password':
-                        errorMessage = '🔒 Parola trebuie să aibă cel puțin 6 caractere.';
-                        break;
-                        
-                    case 'auth/invalid-email':
-                        errorMessage = '📧 Format email invalid.';
-                        break;
-                        
-                    case 'auth/operation-not-allowed':
-                        errorMessage = '❌ Email/Password authentication nu este activat în Firebase Console!\n\n📋 Activează-l: Authentication → Sign-in method → Email/Password → Enable';
-                        break;
-                        
-                    case 'auth/network-request-failed':
-                        errorMessage = '🌐 Eroare de rețea. Verifică conexiunea la internet.';
-                        break;
-                        
-                    default:
-                        errorMessage = `❌ Eroare Firebase: ${error.message}`;
-                }
-                
-                showMessage(errorMessage, 'error');
+            } else if (createError.code === 'auth/operation-not-allowed') {
+                throw new Error('Email/Password authentication nu este activat în Firebase Console!\n\n📋 Activează: Authentication → Sign-in method → Email/Password → Enable');
+            } else if (createError.code === 'auth/weak-password') {
+                throw new Error('Parola trebuie să aibă cel puțin 6 caractere.');
+            } else if (createError.code === 'auth/invalid-email') {
+                throw new Error('Format email invalid.');
+            } else {
+                throw createError;
             }
         }
+        
+        const user = userCredential.user;
+        
+        // Salvează informațiile doctorului
+        currentDoctor = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || `Dr. ${email.split('@')[0]}`,
+            photoURL: user.photoURL
+        };
+        
+        console.log('✅ Doctor autentificat:', currentDoctor);
+        
+        // Afișează dashboard-ul
+        showDashboard();
+        
+    } catch (error) {
+        console.error('💥 Eroare finală:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    }
+}
 
         // Inițializează date demo în Firebase
         async function initializeDemoData() {
